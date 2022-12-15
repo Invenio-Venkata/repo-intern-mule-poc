@@ -1,0 +1,4 @@
+%dw 2.0
+
+type auto_9d5dcbf0_ac45_4b24_9084_c1c9ea67a3bf_Output_Payload = Array<{  profile_image: String,   employee_name: String,   employee_salary: Number,   id: Number,   employee_age: Number,   _?: Any}>
+
