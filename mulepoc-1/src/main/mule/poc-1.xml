@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<flow name="poc-get" doc:id="292557fa-8f4d-403e-88ed-8d34806bf510" >
+		<logger level="INFO" doc:name="start-Log" doc:id="c14f7ecf-0ad1-4bb5-94e0-91f908a3f7c4" message="request for get path"/>
+		<ee:transform doc:name="Transform Message" doc:id="968cff4a-eb73-4c1f-8b78-8fe378af0595" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[output application/json
+var datetime = (now() >> "IST") as String {format: "dd-MM-yyyy hh:mm"}
+var AMPM = (now() >> "IST") as String {format: " a"}
+---
+{
+  uniqueId: attributes.headers.vendorName ++ " - " ++ uuid(),
+  currentDate: datetime ++ AMPM,
+  status: "Success"
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="last-Log" doc:id="e0cc5cfe-5b77-48e1-a4eb-1d7ce6b2ff56" message="successfully processed"/>
+	</flow>
+	<flow name="poc-1Flow-post-json" doc:id="90197bcb-4208-4bc2-8d1b-848931e85318" >
+		<logger level="INFO" doc:name="Logger" doc:id="6a7f792e-b233-4824-afb9-2a08029091c1" message="Post json request"/>
+		<choice doc:name="Choice" doc:id="fe938489-2e80-481c-99b3-2ee4f6933156" >
+			<when expression="#[ payload.noOfRecords as Number == sizeOf(payload.records)]">
+				<ee:transform doc:name="Transform Message" doc:id="4072cf92-3e91-47ef-840a-4d93a26693ee" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/csv header=true,separator=";"
+---
+payload.records map {
+    "order-id": payload.orderId,
+    "user-name": upper($.name),
+    "phone-number":  $.contactNo,
+    "mail": $.emailId
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<logger level="INFO" doc:name="Logger" doc:id="85320346-1f1b-45f1-b436-6b92a4aef584" message="Post json sucessful"/>
+			</when>
+			<otherwise >
+				<ee:transform doc:name="Transform Message" doc:id="c18efba9-b9cd-4ddb-9444-556092ed1b24" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+%dw 2.0
+output application/json
+---
+{
+  "errorMessage" : "The no. of records counts doesn’t match with the records in an array",
+  "status": "Failed"
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</otherwise>
+		</choice>
+	</flow>
+	<flow name="poc-1Flow1-post-xml" doc:id="20b57665-85bf-4cfb-99ac-7c119d8844ce" >
+		<logger level="INFO" doc:name="Logger" doc:id="6a1de346-2a3d-4f28-883f-6343bf19786f" message="post xml request recieved"/>
+		<choice doc:name="Choice" doc:id="ae590199-62d7-40a6-8021-57a11b936692" >
+			<when expression="#[payload.orders.noOfRecords as Number  == sizeOf(payload.orders.*records)]">
+				<ee:transform doc:name="Transform Message" doc:id="bc544886-1274-46f8-9256-ca627f1a30b4" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/csv header=true,separator=";"
+---
+payload.orders.*records map {
+    "order-id": payload.orders.orderId,
+    "user-name": upper($.name),
+    "phone-number": $.contactNo,
+    "mail": $.emailId
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<logger level="INFO" doc:name="Logger" doc:id="17a38861-6c82-448e-92df-a72828e55bc5" message="successful post xml"/>
+			</when>
+			<otherwise>
+				<ee:transform doc:name="Transform Message" doc:id="d35c83cb-40ee-498c-a23a-7c9bd8c869b9" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+  "errorMessage" : "The no. of records counts doesn’t match with the records in an array",
+  "status": "Failed"
+}
+
+]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</otherwise>
+		</choice>
+	</flow>
+</mule>

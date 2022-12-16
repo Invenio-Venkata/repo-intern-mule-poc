@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:sftp="http://www.mulesoft.org/schema/mule/sftp" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/sftp http://www.mulesoft.org/schema/mule/sftp/current/mule-sftp.xsd">
+	<http:request-config name="HTTP_Request_configuration" doc:name="HTTP Request configuration" doc:id="d48ad721-0fe2-423d-bffc-40dfc8e8b124" >
+		<http:request-connection host="dummy.restapiexample.com" />
+	</http:request-config>
+	<sftp:config name="SFTP_Config" doc:name="SFTP Config" doc:id="5d728b19-799f-4b68-a156-2446f264dab7" >
+		<sftp:connection host="192.168.4.138" username="invenio" password="invenio" workingDir="/orders"/>
+	</sftp:config>
+	<flow name="get-restapi-request" doc:id="9d5dcbf0-ac45-4b24-9084-c1c9ea67a3bf" >
+		<http:request method="GET" doc:name="Restapi Request" doc:id="d3e9a97e-7f04-458d-b6bd-db92fc8d8cdf" config-ref="HTTP_Request_configuration" path="/api/v1/employees"/>
+		<ee:transform doc:name="Transform Message" doc:id="a4caf805-6972-4a1e-8849-e983a16fb741" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+
+---
+payload.data filter ($.employee_age > 60)]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Json data to xml " doc:id="6be11073-4384-40f8-9d6a-e07dd61564a2" message="#[payload]"/>
+		<ee:transform doc:name="Transform Message" doc:id="21789013-8dc7-4507-a72f-1ea481c3bfee" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/xml
+---
+employees:
+[{
+    details: payload map {
+        "no" : $.id,
+        "name" : $.employee_name,
+        "age" : $.employee_age,
+        "salary" : $.employee_salary,
+    } orderBy (-$.age)
+    
+}]]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="employees details arranged in decending order" doc:id="5ed58a04-3ebb-4e0b-90f4-fec911531870" message="#[payload]"/>
+		<sftp:write doc:name="Write" doc:id="7953bb23-63a4-4180-8f1a-053541c1f5a2" config-ref="SFTP_Config" path='#["/orders/" ++ "POC1"++(now() as String{format:" yyyy-MM-dd-hhmmssSSS"})++".xml"]'/>
+	</flow>
+</mule>
